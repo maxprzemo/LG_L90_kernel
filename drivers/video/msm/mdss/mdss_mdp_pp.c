@@ -23,11 +23,16 @@
 
 #if defined(CONFIG_LCD_KCAL)
 #include <mach/board_lge.h>
+#include <linux/input/sweep2wake.h>
+#include <mach/kcal.h>
+
 extern int g_kcal_r;
 extern int g_kcal_g;
 extern int g_kcal_b;
 extern struct kcal_data kcal_value;
 #endif
+
+extern int lut_trigger, down_kcal, up_kcal;
 
 struct mdp_csc_cfg mdp_csc_convert[MDSS_MDP_MAX_CSC] = {
 	[MDSS_MDP_CSC_RGB2RGB] = {
@@ -1924,8 +1929,32 @@ int update_preset_lcdc_lut(void)
 {
 	int ret = 0;
 
-	printk("update_preset_lcdc_lut red=[%d], green=[%d], blue=[%d]\n", g_kcal_r, g_kcal_g, g_kcal_b);
-	mdss_mdp_pp_argc_kcal(g_kcal_r,g_kcal_g,g_kcal_b);
+	if (lut_trigger == 1) {
+		g_kcal_r = g_kcal_r - down_kcal;
+		g_kcal_g = g_kcal_g - down_kcal;
+		g_kcal_b = g_kcal_b - down_kcal;
+		if (g_kcal_r < 0)
+			g_kcal_r = 0;
+		if (g_kcal_g < 0)
+			g_kcal_g = 0;
+		if (g_kcal_b < 0)
+			g_kcal_b = 0;
+	}
+
+	if (lut_trigger == 2) {
+		g_kcal_r = g_kcal_r + up_kcal;
+		g_kcal_g = g_kcal_g + up_kcal;
+		g_kcal_b = g_kcal_b + up_kcal;
+		if (g_kcal_r > 255)
+			g_kcal_r = 255;
+		if (g_kcal_g > 255)
+			g_kcal_g = 255;
+		if (g_kcal_b > 255)
+			g_kcal_b = 255;
+	}
+
+	pr_info("update_preset_lcdc_lut red=[%d], green=[%d], blue=[%d]\n", g_kcal_r, g_kcal_g, g_kcal_b);
+        mdss_mdp_pp_argc_kcal(g_kcal_r,g_kcal_g,g_kcal_b);
 
 	if (ret)
 		pr_err("%s: failed to set lut! %d\n", __func__, ret);
